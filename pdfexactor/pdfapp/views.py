@@ -56,6 +56,114 @@ from PyPDF2 import PdfReader
 
 
 
+# def extract_pdf_text(request):
+#     """Extracts text data from a user-uploaded PDF file and returns it as a dictionary or JSON.
+
+#     Args:
+#         request (HttpRequest): The Django request object.
+
+#     Returns:
+#         JsonResponse: A JSON response containing the extracted text data.
+
+#     Raises:
+#         ValueError: If a PDF file is not uploaded or the file format is invalid.
+#     """
+
+#     if request.method != 'POST':
+#         return JsonResponse({'error': 'Only POST requests are allowed.'}, status=405)
+
+#     try:
+#         # Validate file upload
+#         if 'pdf_file' not in request.FILES:
+#             raise ValueError('No PDF file uploaded. Please select a PDF file.')
+
+#         pdf_file = request.FILES['pdf_file']
+
+#         # Validate file extension
+#         if not pdf_file.name.endswith('.pdf'):
+#             raise ValueError('Invalid file format. Please provide a PDF file.')
+
+#         # Extract file path
+#         file_path = pdf_file.name  # Get the file name from the uploaded file
+
+#         # Rest of the function logic to extract and return text data (unchanged)
+#         # ...
+
+#     except (IOError, FileNotFoundError) as e:
+#         # Handle file-related errors
+#         error_message = f"Error reading PDF file: {str(e)}"
+#         return JsonResponse({'error': error_message}, status=400)
+
+#     except ValueError as e:
+#         # Handle invalid file format or missing upload error
+#         return JsonResponse({'error': str(e)}, status=400)
+
+#     except Exception as e:
+#         # Catch unexpected errors
+#         error_message = f"An unexpected error occurred: {str(e)}"
+#         return JsonResponse({'error': error_message}, status=500)
+
+
+
+
+# def extract_pdf_text(request):
+#     """Extracts text data from a PDF file uploaded by the user and returns it as JSON.
+
+#     Args:
+#         request (HttpRequest): The Django request object.
+
+#     Returns:
+#         JsonResponse: A JSON response containing the extracted text data.
+
+#     Raises:
+#         ValueError: If no PDF file is uploaded or the file format is invalid.
+#     """
+
+#     if request.method != 'POST':
+#         return JsonResponse({'error': 'Only POST requests are allowed.'}, status=405)
+
+#     try:
+#         # Validate file upload
+#         if 'pdf_file' not in request.FILES:
+#             raise ValueError('No PDF file uploaded. Please select a PDF file.')
+
+#         pdf_file = request.FILES['pdf_file']
+
+#         # Validate file extension
+#         if not pdf_file.name.endswith('.pdf'):
+#             raise ValueError('Invalid file format. Please provide a PDF file.')
+
+#         # Extract text from file
+#         with open(pdf_file.temporary_name(), 'rb') as f:
+#             reader = PdfReader(f)
+#             text = ''
+#             for page_num in range(len(reader.pages)):
+#                 page = reader.pages[page_num]
+#                 text += page.extract_text() + '\n'  # Add newlines between pages
+
+#         # Prepare and return JSON data
+#         data = {'text': text.strip()}
+#         json_data = json.dumps(data, indent=4)  # Use indentation for readability
+
+#         return JsonResponse(json_data, safe=False)
+
+#     except (IOError, FileNotFoundError) as e:
+#         # Handle file-related errors
+#         error_message = f"Error reading PDF file: {str(e)}"
+#         return JsonResponse({'error': error_message}, status=400)
+
+#     except ValueError as e:
+#         # Handle invalid file format or missing upload error
+#         return JsonResponse({'error': str(e)}, status=400)
+
+#     except Exception as e:
+#         # Catch unexpected errors
+#         error_message = f"An unexpected error occurred: {str(e)}"
+#         return JsonResponse({'error': error_message}, status=500)
+
+
+
+
 def extract_pdf_text(request):
     """Extracts text data from a user-uploaded PDF file and returns it as a dictionary or JSON.
 
@@ -63,7 +171,7 @@ def extract_pdf_text(request):
         request (HttpRequest): The Django request object.
 
     Returns:
-        JsonResponse: A JSON response containing the extracted text data.
+        JsonResponse: A JSON response containing the extracted text data or an error message.
 
     Raises:
         ValueError: If a PDF file is not uploaded or the file format is invalid.
@@ -75,19 +183,27 @@ def extract_pdf_text(request):
     try:
         # Validate file upload
         if 'pdf_file' not in request.FILES:
-            raise ValueError('No PDF file uploaded. Please select a PDF file.')
+            return JsonResponse({'error': 'No PDF file uploaded.'}, status=400)
 
         pdf_file = request.FILES['pdf_file']
 
         # Validate file extension
         if not pdf_file.name.endswith('.pdf'):
-            raise ValueError('Invalid file format. Please provide a PDF file.')
+            return JsonResponse({'error': 'Invalid file format. Please provide a PDF file.'}, status=400)
 
-        # Extract file path
-        file_path = pdf_file.name  # Get the file name from the uploaded file
+        # Extract text from file
+        with open(pdf_file.temporary_name(), 'rb') as f:
+            reader = PdfReader(f)
+            text = ''
+            for page_num in range(len(reader.pages)):
+                page = reader.pages[page_num]
+                text += page.extract_text() + '\n'  # Add newlines between pages
 
-        # Rest of the function logic to extract and return text data (unchanged)
-        # ...
+        # Prepare and return JSON data
+        data = {'text': text.strip()}
+        json_data = json.dumps(data, indent=4)  # Use indentation for readability
+
+        return JsonResponse(json_data, safe=False)
 
     except (IOError, FileNotFoundError) as e:
         # Handle file-related errors
@@ -102,3 +218,7 @@ def extract_pdf_text(request):
         # Catch unexpected errors
         error_message = f"An unexpected error occurred: {str(e)}"
         return JsonResponse({'error': error_message}, status=500)
+
+
+
+
