@@ -37,6 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_yasg',
+    'pdfapp',
+    'rest_framework',
+    'rest_framework_swagger',
 ]
 
 MIDDLEWARE = [
@@ -121,3 +125,19 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Swagger documentation configuration
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'basic': {
+            'type': 'http',
+            'scheme': 'basic'
+        }
+    }
+}
+
+# Optional: Customize API title and URL (default is '/swagger/')
+# SWAGGER_TITLE = 'Your API Title'
+# SWAGGER_URL = '/api-docs/'
+
