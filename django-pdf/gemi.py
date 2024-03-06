@@ -2,7 +2,7 @@ import os
 import subprocess
 from PyPDF2 import PdfReader
 
-def extract_text_to_notepad(folder_path):
+def c(folder_path):
   """
   Extracts text from all PDFs in a folder and displays them in notepad.
 
