@@ -2,13 +2,12 @@ import io
 import PyPDF2
 import re
 
-
-def extract_invoice_data(pdf_data, use_regex=False, regex_patterns=None):
+def extract_invoice_data(pdf_file_path, use_regex=False, regex_patterns=None):
     """
-    Extracts specific data points from a given PDF byte stream.
+    Extracts specific data points from a given PDF file.
 
     Args:
-        pdf_data (bytes): The byte content of the PDF file.
+        pdf_file_path (str): The path to the PDF file.
         use_regex (bool, optional): Use regular expressions for data extraction if True (default: False).
         regex_patterns (dict, optional): A dictionary containing regular expression patterns for specific data points.
             Keys should match the desired data field names (e.g., 'Tax invoice No', 'Invoice Date', etc.).
@@ -19,27 +18,25 @@ def extract_invoice_data(pdf_data, use_regex=False, regex_patterns=None):
     """
 
     try:
-        # Open PDF in memory
-        with io.BytesIO(pdf_data) as pdf_file:
-            reader = PyPDF2.PdfReader(pdf_file)
-
         invoice_data = {}
-        for page_num in range(len(reader.pages)):
-            page = reader.pages[page_num]
-            text = page.extract_text()
+        with open(pdf_file_path, 'rb') as pdf_file:
+            reader = PyPDF2.PdfReader(pdf_file)
+            for page_num in range(len(reader.pages)):
+                page = reader.pages[page_num]
+                text = page.extract_text()
 
-            # Extract data using either PyPDF2 methods or regular expressions
-            if not use_regex:
-                extracted_data = extract_using_py_pdf2(text)
-            else:
-                if not regex_patterns:
-                    raise ValueError("regex_patterns dictionary is required when use_regex is True")
-                extracted_data = extract_using_regex(text, regex_patterns)
+                # Extract data using either PyPDF2 methods or regular expressions
+                if not use_regex:
+                    extracted_data = extract_using_py_pdf2(text)
+                else:
+                    if not regex_patterns:
+                        raise ValueError("regex_patterns dictionary is required when use_regex is True")
+                    extracted_data = extract_using_regex(text, regex_patterns)
 
-            invoice_data.update(extracted_data)
+                invoice_data.update(extracted_data)
 
-            if invoice_data:
-                return invoice_data
+                if invoice_data:
+                    return invoice_data
 
         # No data found on all pages
         return None
@@ -104,26 +101,21 @@ def extract_using_regex(text, regex_patterns):
 
 
 # Example usage
+pdf_file_path = '/home/vikash/Downloads/filght_ticket.pdf'
 
+# Define regex patterns for data extraction
+regex_patterns = {
+    'Tax invoice No': r'Tax invoice No:\s*(\w+)',
+    'Invoice Date': r'Invoice Date:\s*(\d{2}/\d{2}/\d{4})',
+    'Client Name': r'Client name:\s*(.+)',
+    'Total Tax Amount': r'(Total Tax|Total tax|Tax Amount|Total due):\s*(\$\d+\.\d+)'
+}
 
-# Example usage
-pdf_file_path = 'your_invoice.pdf'  # Replace with the actual path
-extracted_data = extract_invoice_data(pdf_file_path)
-
-if extracted_data:
-    print("Extracted invoice data:")
-    print(json.dumps(extracted_data, indent=4))  # Convert to JSON and print with indentation
+# Extract data using the function
+extracted_invoice_data = extract_invoice_data(pdf_file_path, use_regex=True, regex_patterns=regex_patterns)
+if extracted_invoice_data:
+    print("Extracted Invoice Data:")
+    for key, value in extracted_invoice_data.items():
+        print(f"{key}: {value}")
 else:
-    print("Failed to extract data from the PDF.")
-
-
-
-def extract_invoice_data(pdf_data, use_regex=False, regex_patterns=None):
-    # ... (rest of the function)
-
-# Example usage
-pdf_file_path = 'your_invoice.pdf'
-with open(pdf_file_path, 'rb') as pdf_file:  # Open in binary read mode
-    pdf_data = pdf_file.read()
-
-extracted_data = extract_invoice_data(pdf_data)
+    print("No data extracted from the PDF.")
