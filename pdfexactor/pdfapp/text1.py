@@ -1,41 +1,51 @@
 import json
 import PyPDF2
-from camelot import Table
 
-def extract_invoice_data(pdf_file_path):
+import PyPDF2
+import re
+
+def extract_invoice_data(pdf_data):
     """
-    Extracts invoice data from a given PDF file using Camelot.
+    Extracts specific data from a PDF using PyPDF2.
 
     Args:
-        pdf_file_path (str): The path to the PDF file.
+        pdf_data (bytes): The byte content of the PDF file.
 
     Returns:
         dict (or None): A dictionary containing extracted invoice data or None if extraction fails.
     """
 
     try:
-        # Open PDF and build Camelot tables
-        with open(pdf_file_path, 'rb') as pdf_file:
+        # Open PDF in memory
+        with io.BytesIO(pdf_data) as pdf_file:
             reader = PyPDF2.PdfReader(pdf_file)
-            tables = Table(pages=reader.pages)
 
-        # Extract specific data from the first table (assuming relevant data is in the first table)
         invoice_data = {}
-        if len(tables) > 0:
-            data = tables[0].df
-            invoice_data['Tax invoice No'] = data.loc[data['Tax invoice No'].notna(), 'Tax invoice No'].tolist()[0]
-            invoice_data['Invoice Date'] = data.loc[data['Invoice Date'].notna(), 'Invoice Date'].tolist()[0]
-            invoice_data['Client name'] = data.loc[data['Client name'].notna(), 'Client name'].tolist()[0]
-            for col in data.columns:
-                if 'Total Tax' in col:
-                    invoice_data['Total tax amount'] = data[col].tolist()[0]
-                    break
+        for page_num in range(len(reader.pages)):
+            page = reader.pages[page_num]
+            text = page.extract_text()
+
+            # Use regular expressions to extract data points
+            invoice_no_match = re.search(r'Tax invoice No:\s*(.*)', text, re.IGNORECASE)
+            invoice_date_match = re.search(r'Invoice Date:\s*(.*)', text, re.IGNORECASE)
+            client_name_match = re.search(r'Client name:\s*(.*)', text, re.IGNORECASE)
+            total_tax_match = re.search(r'(Total Tax|Total tax|Tax Amount|Total due):\s*(\d+\.\d+)', text, re.IGNORECASE)
+
+            if invoice_no_match:
+                invoice_data['Tax invoice No'] = invoice_no_match.group(1)
+            if invoice_date_match:
+                invoice_data['Invoice Date'] = invoice_date_match.group(1)
+            if client_name_match:
+                invoice_data['Client name'] = client_name_match.group(1)
+            if total_tax_match:
+                invoice_data['Total tax amount'] = total_tax_match.group(2)
 
         return invoice_data
 
     except Exception as e:
         print(f"Error extracting data: {e}")
         return None
+
 
 # Example usage
 pdf_file_path = 'your_invoice.pdf'  # Replace with the actual path
