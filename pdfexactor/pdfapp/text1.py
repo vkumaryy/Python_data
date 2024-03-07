@@ -115,3 +115,15 @@ if extracted_data:
     print(json.dumps(extracted_data, indent=4))  # Convert to JSON and print with indentation
 else:
     print("Failed to extract data from the PDF.")
+
+
+
+def extract_invoice_data(pdf_data, use_regex=False, regex_patterns=None):
+    # ... (rest of the function)
+
+# Example usage
+pdf_file_path = 'your_invoice.pdf'
+with open(pdf_file_path, 'rb') as pdf_file:  # Open in binary read mode
+    pdf_data = pdf_file.read()
+
+extracted_data = extract_invoice_data(pdf_data)
