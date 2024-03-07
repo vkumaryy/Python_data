@@ -1,4 +1,5 @@
 import pdfplumber
+import json
 
 def extract_invoice_data(pdf_file_path):
     """
@@ -20,20 +21,11 @@ def extract_invoice_data(pdf_file_path):
             text = first_page.extract_text(x_tolerance=2, y_tolerance=2)
 
             # Extract data using text patterns
-            invoice_no = text.split("Tax invoice No:")[-1].split("Invoice Date:")[0].strip()
-            invoice_data['Tax invoice No'] = invoice_no if invoice_no else None
-
-            invoice_date = text.split("Invoice Date:")[-1].split("Client Name:")[0].strip()
-            invoice_data['Invoice Date'] = invoice_date if invoice_date else None
-
-            client_name = text.split("Client Name:")[-1].split("Total Tax Amount:")[0].strip()
-            invoice_data['Client Name'] = client_name if client_name else None
-
-            total_tax_amount = text.split("Total Tax Amount:")[-1].split("Total Tax:")[0].strip()
-            invoice_data['Total Tax Amount'] = total_tax_amount if total_tax_amount else None
-
-            total_tax = text.split("Total Tax:")[-1].strip()
-            invoice_data['Total Tax'] = total_tax if total_tax else None
+            invoice_data['Tax invoice No'] = text.split("Tax invoice No:")[-1].split("Invoice Date:")[0].strip()
+            invoice_data['Invoice Date'] = text.split("Invoice Date:")[-1].split("Client Name:")[0].strip()
+            invoice_data['Client Name'] = text.split("Client Name:")[-1].split("Total Tax Amount:")[0].strip()
+            invoice_data['Total Tax Amount'] = text.split("Total Tax Amount:")[-1].split("Total Tax:")[0].strip()
+            invoice_data['Total Tax'] = text.split("Total Tax:")[-1].strip()
 
             return invoice_data
 
@@ -47,7 +39,6 @@ pdf_file_path = '/home/vikash/Downloads/filght_ticket.pdf'
 extracted_invoice_data = extract_invoice_data(pdf_file_path)
 if extracted_invoice_data:
     print("Extracted Invoice Data:")
-    for key, value in extracted_invoice_data.items():
-        print(f"{key}: {value}")
+    print(json.dumps(extracted_invoice_data, indent=4))
 else:
     print("No data extracted from the PDF.")
