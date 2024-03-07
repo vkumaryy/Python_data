@@ -1,31 +1,46 @@
+import re
 import pdfplumber
-import json
 
 def extract_invoice_data(pdf_file_path):
     """
-    Extracts specific data points from a given PDF file.
+    Extracts specific data points using regular expressions from a PDF file.
 
     Args:
         pdf_file_path (str): The path to the PDF file.
 
     Returns:
-        dict: A dictionary containing extracted invoice data or None if extraction fails.
+        dict: A dictionary containing extracted invoice data.
     """
-
     try:
-        invoice_data = {}
         with pdfplumber.open(pdf_file_path) as pdf:
             first_page = pdf.pages[0]  # Extract data from the first page
 
             # Extract text from the first page
             text = first_page.extract_text(x_tolerance=2, y_tolerance=2)
 
-            # Extract data using text patterns
-            invoice_data['Tax invoice No'] = text.split("Tax invoice No:")[-1].split("Invoice Date:")[0].strip()
-            invoice_data['Invoice Date'] = text.split("Invoice Date:")[-1].split("Client Name:")[0].strip()
-            invoice_data['Client Name'] = text.split("Client Name:")[-1].split("Total Tax Amount:")[0].strip()
-            invoice_data['Total Tax Amount'] = text.split("Total Tax Amount:")[-1].split("Total Tax:")[0].strip()
-            invoice_data['Total Tax'] = text.split("Total Tax:")[-1].strip()
+            # Regular expressions for data extraction
+            tax_invoice_pattern = r'Tax\s*invoice\s*No\s*:\s*(\w+)'
+            invoice_date_pattern = r'Invoice\s*Date\s*:\s*(\d{2}/\d{2}/\d{4})'
+            total_tax_amount_pattern = r'Total\s*Tax\s*Amount\s*:\s*(\$\d+\.\d+)'
+            total_tax_pattern = r'Total\s*Tax\s*:\s*(\$\d+\.\d+)'
+
+            # Extracting data using regular expressions
+            invoice_data = {}
+            match_tax_invoice = re.search(tax_invoice_pattern, text, re.IGNORECASE)
+            if match_tax_invoice:
+                invoice_data['Tax invoice No'] = match_tax_invoice.group(1)
+
+            match_invoice_date = re.search(invoice_date_pattern, text, re.IGNORECASE)
+            if match_invoice_date:
+                invoice_data['Invoice Date'] = match_invoice_date.group(1)
+
+            match_total_tax_amount = re.search(total_tax_amount_pattern, text, re.IGNORECASE)
+            if match_total_tax_amount:
+                invoice_data['Total Tax Amount'] = match_total_tax_amount.group(1)
+
+            match_total_tax = re.search(total_tax_pattern, text, re.IGNORECASE)
+            if match_total_tax:
+                invoice_data['Total Tax'] = match_total_tax.group(1)
 
             return invoice_data
 
@@ -33,12 +48,11 @@ def extract_invoice_data(pdf_file_path):
         print(f"Error extracting data: {e}")
         return None
 
-
 # Example usage
-pdf_file_path = '/home/vikash/Downloads/filght_ticket.pdf'
+pdf_file_path = 'your_invoice.pdf'
 extracted_invoice_data = extract_invoice_data(pdf_file_path)
 if extracted_invoice_data:
     print("Extracted Invoice Data:")
-    print(json.dumps(extracted_invoice_data, indent=4))
+    print(extracted_invoice_data)
 else:
     print("No data extracted from the PDF.")
