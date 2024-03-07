@@ -39,6 +39,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # path('swagger/', swagger_views.get_swagger_view(title='Your API Title'), name='schema-swagger-ui'),
     path('extract_pdf/', views.extract_pdf_text, name='extract_pdf'),
-    # path('ext/', views.extract_pdf_data, name='extract_pdf'),
+    path('ext/', views.extract_pdf_data, name='extract_pdf'),
+    path('ext2/', views.extract_key_value_pairs, name='extract_pdf2'),
+
     
 ]

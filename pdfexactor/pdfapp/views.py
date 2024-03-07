@@ -2,6 +2,8 @@ import json
 from django.http import JsonResponse
 from PyPDF2 import PdfReader
 import re
+from collections import defaultdict
+from django.views.decorators.csrf import csrf_exempt
 
 
 # def extract_pdf_text(request, file_path: str = '/home/vikash/Downloads/filght_ticket.pdf'):
@@ -385,5 +387,100 @@ def extract_pdf_text(request):
 
 
 
+
+def extract_pdf_data(file_path: str) -> dict or None:
+    """Extracts all key-value pairs from a PDF file, returning them as JSON data.
+
+    Args:
+        file_path (str): The local file path to the PDF file.
+
+    Returns:
+        dict or None: A dictionary containing the extracted data or None if an error occurs.
+    """
+
+    try:
+        # Open the PDF using PyPDF2
+        with open(file_path, 'rb') as pdf_file:
+            reader = PdfReader(pdf_file)
+
+            # Extract text from all pages, combining them into a single string
+            text = ''
+            for page_num in range(len(reader.pages)):
+                page = reader.pages[page_num]
+                text += page.extract_text() + '\n'
+
+        # Combine text across multiple lines for better structure analysis
+        text_lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+        # Define a regular expression to extract key-value pairs
+        key_value_pattern = r'(?i)(.+?):\s+(.+)'  # Case-insensitive match
+
+        # Use a defaultdict to accumulate extracted data
+        extracted_data = defaultdict(list)
+
+        for line in text_lines:
+            match = re.match(key_value_pattern, line)
+            if match:
+                key, value = match.groups()
+                extracted_data[key.strip()].append(value.strip())
+
+        return dict(extracted_data)  # Convert defaultdict to regular dictionary
+
+    except (IOError, FileNotFoundError) as e:
+        # Handle file-related errors with informative error message
+        error_message = f"Error reading PDF file: {str(e)}"
+        print(error_message)
+        return None  # Return None on error
+
+    except Exception as e:
+        # Catch unexpected errors and print the error message for logging or debugging
+        error_message = f"An unexpected error occurred: {str(e)}"
+        print(error_message)
+        return None  # Return None on error
+
+
+# Example usage
+file_path = '/home/vikash/Downloads/filght_ticket.pdf'
+extracted_data = extract_pdf_data(file_path)
+
+if extracted_data:
+    # Convert the dictionary to JSON and print it
+    import json
+    json_data = json.dumps(extracted_data, indent=4)  # Add indentation for readability
+    print(json_data)
+else:
+    print("Error: Could not extract data from PDF.")
+
+
+
+from django.http import JsonResponse
+import fitz  # PyMuPDF
+import re
+
+# Create your views here.
+@csrf_exempt
+def extract_key_value_pairs(request):
+    if request.method == 'POST' and request.FILES:
+        pdf_file = request.FILES['pdf_file']
+
+        doc = fitz.open(stream=pdf_file.read(), filetype="pdf")
+        text = ""
+        for page in doc:
+            text += page.get_text("text")
+
+        extracted_details = extract_pairs(text)
+
+        return JsonResponse(extracted_details, safe=False)
+    else:
+        return JsonResponse({"error": "Please upload a PDF file."}, status=400)
+
+def extract_pairs(text):
+    # Define a simple pattern that looks for lines with key:value pairs
+    # Adjust the pattern as necessary to fit the structure of your PDFs
+    pattern = re.compile(r'([\w\s]+):\s*([\s\S]+?)(?=\w+\s*:|$)')
+    matches = pattern.findall(text)
+
+    details = {match[0].strip(): match[1].strip() for match in matches}
+    return details
 
 
