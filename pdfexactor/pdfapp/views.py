@@ -4,6 +4,68 @@ from PyPDF2 import PdfReader
 import re
 from collections import defaultdict
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+import fitz  # PyMuPDF
+import pdfplumber
+import json
+
+
+class PDFExtractAPIView(APIView):
+    def post(self, request, format=None):
+        if 'file' not in request.FILES:
+            return Response({'error': 'No PDF file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        pdf_file = request.FILES['file']
+        
+        # Extract text from PDF
+        with pdfplumber.open(pdf_file) as pdf:
+            extracted_data = {}
+            for page in pdf.pages:
+                page_data = {
+                    'page_number': page.page_number,
+                    'text': []
+                }
+                for line in page.extract_text().split('\n'):
+                    # Split line into key-value pairs based on ':' if present
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        page_data['text'].append({key.strip(): value.strip()})
+                    else:
+                        page_data['text'].append(line.strip())
+                extracted_data[page.page_number] = page_data
+        
+        # Return extracted data as JSON
+        return Response(extracted_data, status=status.HTTP_200_OK)
+
+
+class PDFExtractAPIView(APIView):
+    def post(self, request, format=None):
+        if 'file' not in request.FILES:
+            return Response({'error': 'No PDF file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        pdf_file = request.FILES['file']
+        
+        # Extract text from PDF
+        with pdfplumber.open(pdf_file) as pdf:
+            extracted_data = []
+            for page in pdf.pages:
+                page_data = {
+                    'page_number': page.page_number,
+                    'text': page.extract_text(),
+                    'tables': []
+                }
+                for table in page.extract_tables():
+                    table_data = []
+                    for row in table:
+                        table_data.append(row)
+                    page_data['tables'].append(table_data)
+                extracted_data.append(page_data)
+        
+        # Return extracted data as JSON
+        return Response(extracted_data, status=status.HTTP_200_OK)
+
 
 
 # def extract_pdf_text(request, file_path: str = '/home/vikash/Downloads/filght_ticket.pdf'):
@@ -453,9 +515,7 @@ else:
 
 
 
-from django.http import JsonResponse
-import fitz  # PyMuPDF
-import re
+
 
 # Create your views here.
 @csrf_exempt
@@ -484,3 +544,102 @@ def extract_pairs(text):
     return details
 
 
+
+class ExtractPDFData(APIView):
+    def post(self, request):
+        # Check if a file was uploaded
+        if 'file' not in request.FILES:
+            return Response({'error': 'No PDF file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Extract data from the uploaded PDF file
+        try:
+            pdf_file = request.FILES['file']
+            extracted_data = self.extract_pdf_data(pdf_file)
+            return Response(extracted_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def extract_pdf_data(self, pdf_file):
+        # Open the PDF file
+        doc = fitz.open(pdf_file)
+
+        # Initialize variables to store extracted data
+        extracted_data = {"key_value_pairs": [], "tables": []}
+        current_key = None
+        current_value = ""
+
+        # Iterate through pages
+        for page in doc:
+            text = page.get_text()
+
+            # Split text into lines
+            lines = text.splitlines()
+
+            # Iterate through lines
+            for line in lines:
+                # Check if the line contains a key-value pair
+                match = re.match(r'^\s*([^:]+)\s*:\s*(.*)$', line)
+                if match:
+                    # If a key is already set, append it to the data
+                    if current_key:
+                        extracted_data["key_value_pairs"].append({current_key.strip(): current_value.strip()})
+                        current_value = ""
+
+                    # Set the new key and value
+                    current_key, current_value = match.groups()
+
+                # Check if the line contains a table
+                elif " | " in line:
+                    # Split the line into cells
+                    cells = [cell.strip() for cell in line.split(" | ")]
+
+                    # Append the row to the table
+                    extracted_data["tables"].append(cells)
+
+                # If the line does not match any pattern, append it to the current value
+                elif current_key:
+                    current_value += line + " "
+
+        # Append the last key-value pair
+        if current_key:
+            extracted_data["key_value_pairs"].append({current_key.strip(): current_value.strip()})
+
+        return extracted_data
+
+
+
+
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+import re
+import PyPDF2
+
+class ExtractPDFDataAPIView(APIView):
+    def post(self, request, format=None):
+        pdf_file = request.FILES.get('pdf_file')
+        if not pdf_file:
+            return Response({'error': 'No PDF file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Regular expressions for extracting data
+        patterns = {
+            "Tax Invoice No": r'Tax Invoice No:\s*(\w+)',
+            "Invoice Date": r'Invoice Date:\s*(\d{2}/\d{2}/\d{4})',
+            "Client Name": r'Client Name:\s*(.+)',
+            "Total Tax Amount": r'Total Tax Amount:\s*(\$\d+\.\d+)',
+            "Total Tax": r'Total Tax:\s*(\$\d+\.\d+)',
+        }
+        
+        extracted_data = {}
+        
+        with pdf_file.open(mode='rb') as file:
+            reader = PyPDF2.PdfFileReader(file)
+            for page_num in range(reader.numPages):
+                page = reader.getPage(page_num)
+                text = page.extractText()
+                for key, pattern in patterns.items():
+                    match = re.search(pattern, text)
+                    if match:
+                        extracted_data[key] = match.group(1)
+        
+        return Response(extracted_data, status=status.HTTP_200_OK)

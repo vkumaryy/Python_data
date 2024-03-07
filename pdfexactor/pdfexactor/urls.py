@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from pdfapp import views
+from pdfapp.views import ExtractPDFData ,PDFExtractAPIView
 # from drf_yasg.views import get_schema_view
 # from drf_yasg import openapi
 
@@ -41,6 +42,8 @@ urlpatterns = [
     path('extract_pdf/', views.extract_pdf_text, name='extract_pdf'),
     path('ext/', views.extract_pdf_data, name='extract_pdf'),
     path('ext2/', views.extract_key_value_pairs, name='extract_pdf2'),
+    path('ext3/', ExtractPDFData.as_view(), name='extract_pdf3'),
+    path('ext4/', PDFExtractAPIView.as_view(), name='extract_pdf4'),
 
     
 ]
