@@ -643,3 +643,84 @@ class ExtractPDFDataAPIView(APIView):
                         extracted_data[key] = match.group(1)
         
         return Response(extracted_data, status=status.HTTP_200_OK)
+
+
+
+
+
+#######################################################
+    
+import json
+import io
+import PyPDF2
+from camelot import Table
+
+def extract_invoice_data(pdf_data):
+    """
+    Extracts invoice data from a given PDF byte stream using Camelot.
+
+    Args:
+        pdf_data (bytes): The byte content of the PDF file.
+
+    Returns:
+        dict (or None): A dictionary containing extracted invoice data or None if extraction fails.
+    """
+
+    try:
+        # Open PDF using memory stream (avoids creating temporary files)
+        with io.BytesIO(pdf_data) as pdf_file:
+            reader = PyPDF2.PdfReader(pdf_file)
+            tables = Table(pages=reader.pages)
+
+        # Extract specific data from the first table (assuming relevant data is in the first table)
+        invoice_data = {}
+        if len(tables) > 0:
+            data = tables[0].df
+            # Check for each field and extract only if it exists in the table
+            if 'Tax invoice No' in data.columns:
+                invoice_data['Tax invoice No'] = data.loc[data['Tax invoice No'].notna(), 'Tax invoice No'].tolist()[0]
+            if 'Invoice Date' in data.columns:
+                invoice_data['Invoice Date'] = data.loc[data['Invoice Date'].notna(), 'Invoice Date'].tolist()[0]
+            if 'Client name' in data.columns:
+                invoice_data['Client name'] = data.loc[data['Client name'].notna(), 'Client name'].tolist()[0]
+            # Combine potential total tax columns (replace "Total Tax" with your specific column names)
+            total_tax_cols = ['Total Tax', 'Total tax', 'Tax Amount', 'Total due']  # Adjust as needed
+            for col in total_tax_cols:
+                if col in data.columns:
+                    invoice_data['Total tax amount'] = data[col].tolist()[0]
+                    break
+
+        return invoice_data
+
+    except Exception as e:
+        print(f"Error extracting data: {e}")
+        return None
+
+
+
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+# Assuming you've saved the script as extract_pdf_data.py
+from . import extract_pdf_data  # Adjust path if necessary
+
+class ExtractPDFView(APIView):
+    def post(self, request, *args, **kwargs):
+        # Validate request data
+        if 'pdf_data' not in request.FILES:
+            return Response({'error': 'Missing pdf_data field in request data'}, status=400)
+
+        # Extract data from the uploaded PDF
+        uploaded_pdf = request.FILES['pdf_data']
+        try:
+            with uploaded_pdf.open('rb') as pdf_file:
+                extracted_data = extract_pdf_data(pdf_file.read())
+        except Exception as e:
+            print(f"Error extracting data: {e}")
+            return Response({'error': 'Failed to extract data from PDF'}, status=500)
+
+        # Return extracted data in JSON format
+        if extracted_data:
+            return Response(extracted_data)
+        else:
+            return Response({'error': 'No data found in the PDF'}, status=404)
