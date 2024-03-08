@@ -948,3 +948,92 @@ def extract_pdf_view(request):
 
 
 
+#++++++++++++++++++++++++
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from PyPDF2 import PdfReader
+import logging
+
+# Import your model class
+from .models import PdfDetail
+
+def extract_pdf_data(request):
+    """
+    API view to extract tax invoice number(s) from a PDF uploaded in a POST request.
+
+    **Expected request format (POST):**
+
+    ```json
+    {
+        "pdf_file": (file object, required)
+    }
+    ```
+
+    **Returns:**
+
+    A JSON response containing the extracted tax invoice number, or an empty string if not found:
+
+    ```json
+    {
+        "tax_invoice_no": "123456" (or an empty string if not found)
+    }
+    ```
+
+    **Logs:**
+
+    - Logs information about successful processing and extracted number(s).
+    - Logs error messages during PDF processing.
+    - Logs information about saving data to the model.
+    """
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+
+    if 'pdf_file' not in request.FILES:
+        return JsonResponse({'error': 'Missing pdf_file field in request body'}, status=400)
+
+    pdf_file = request.FILES['pdf_file']
+    tax_invoice_no = ""
+    logger = logging.getLogger(__name__)  # Get logger for current module
+
+    try:
+        pdf_reader = PdfReader(pdf_file)
+        logger.info('Successfully opened uploaded PDF file.')
+
+        for page_num in range(len(pdf_reader.pages)):
+            page = pdf_reader.pages[page_num]
+            page_text = page.extract_text()
+
+            # ... (rest of your logic for finding tax invoice number)  # Refer to previous code examples
+
+            if match:
+                tax_invoice_no = match.group(1).strip() + match.group(2).strip()
+                logger.info(f'Extracted tax invoice number: {tax_invoice_no}')
+
+        # Save data to model (if tax invoice number found)
+        if tax_invoice_no:
+            pdf_detail = PdfDetail()
+            pdf_detail.save_from_json({
+                'filename': request.FILES['pdf_file'].name,
+                'tax_invoice_no': tax_invoice_no,
+            })
+            logger.info(f'Saved extracted data to pdfdetail model (filename: {pdf_detail.filename})')
+
+        return JsonResponse({'tax_invoice_no': tax_invoice_no})
+
+    except Exception as e:
+        logger.error(f'Error processing PDF: {str(e)}')
+        return JsonResponse({'error': f'Error processing PDF: {str(e)}'}, status=500)
+
+@csrf_exempt
+def extract_pdf_view(request):
+    """
+    Wrapper view for handling CSRF exemption for the extract_pdf_data function.
+    """
+    return extract_pdf_data(request)
+
+
+
+
