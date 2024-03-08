@@ -815,3 +815,73 @@ def extract_pdf_view(request):
     Wrapper view for handling CSRF exemption for the extract_pdf_data function.
     """
     return extract_pdf_data(request)
+
+
+
+
+import json
+import re
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from PyPDF2 import PdfReader
+
+def extract_pdf_data(request):
+    """
+    API view to extract tax invoice number from a PDF uploaded in a POST request.
+
+    **Expected request format (POST):**
+
+    ```json
+    {
+        "pdf_file": (file object, required)
+    }
+    ```
+
+    **Returns:**
+
+    A JSON response containing the extracted tax invoice number, or an error message if not found:
+
+    ```json
+    {
+        "tax_invoice_no": "123456" (or an empty string if not found)
+    }
+    ```
+    """
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+
+    if 'pdf_file' not in request.FILES:
+        return JsonResponse({'error': 'Missing pdf_file field in request body'}, status=400)
+
+    pdf_file = request.FILES['pdf_file']
+
+    try:
+        pdf_reader = PdfReader(pdf_file)
+        tax_invoice_no = ""
+
+        for page_num in range(len(pdf_reader.pages)):
+            page = pdf_reader.pages[page_num]
+            page_text = page.extract_text()
+
+            # Extract tax invoice number using a regular expression
+            tax_invoice_pattern = r"(?:tax\s+invoice\s+no\.|invoice\s+no\.|tax\s+invoice\s+[:])\s*(\w+\s*\d+)"
+            match = re.search(tax_invoice_pattern, page_text, re.IGNORECASE)
+
+            if match:
+                tax_invoice_no = match.group(1).strip()
+                break  # Stop processing pages after finding the first occurrence
+
+        return JsonResponse({'tax_invoice_no': tax_invoice_no})
+
+    except Exception as e:
+        return JsonResponse({'error': f'Error processing PDF: {str(e)}'}, status=500)
+
+@csrf_exempt
+def extract_pdf_view(request):
+    """
+    Wrapper view for handling CSRF exemption for the extract_pdf_data function.
+    """
+    return extract_pdf_data(request)
+
