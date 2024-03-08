@@ -724,3 +724,94 @@ class ExtractPDFView(APIView):
             return Response(extracted_data)
         else:
             return Response({'error': 'No data found in the PDF'}, status=404)
+
+
+
+import json
+import re
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from PyPDF2 import PdfReader
+
+def extract_pdf_data(request):
+    """
+    API view to extract text data from a PDF and format it as JSON.
+
+    **Expected request format (POST):**
+
+    ```json
+    {
+        "pdf_file": (file object, required)
+    }
+    ```
+
+    **Returns:**
+
+    A JSON response containing the extracted text data in the following format:
+
+    ```json
+    {
+        "text_data": {
+            "line_1": "value of line 1",
+            "line_2": "value of line 2",
+            # ... (other lines as key-value pairs)
+        },
+        "tables": [
+            [
+                ["cell value 1, row 1", "cell value 2, row 1"],
+                # ... (other rows of the first table)
+            ],
+            # ... (other tables, if present)
+        ]
+    }
+    ```
+    """
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+
+    if 'pdf_file' not in request.FILES:
+        return JsonResponse({'error': 'Missing pdf_file field in request body'}, status=400)
+
+    pdf_file = request.FILES['pdf_file']
+
+    try:
+        pdf_reader = PdfReader(pdf_file)
+        text_data = {}
+        tables = []
+
+        for page_num in range(len(pdf_reader.pages)):
+            page = pdf_reader.pages[page_num]
+            page_text = page.extract_text()
+
+            # Extract text line by line, handling special characters and formatting
+            lines = page_text.strip().splitlines()
+            for line in lines:
+                cleaned_line = re.sub(r'[^\w\s\:\.]', '', line).strip()  # Remove non-alphanumeric characters except for : and .
+                if cleaned_line:
+                    text_data[cleaned_line] = ""  # Initialize line as a key
+
+            # Extract tables using regular expressions (enhance based on your table structure)
+            table_pattern = r'(?:\||\s{2,})(.+?)(?:\r?\n|\Z)(?:\|.+?\r?\n)*?'
+            tables_on_page = re.findall(table_pattern, page_text, re.DOTALL)  # Capture tables using dotall flag
+
+            for table in tables_on_page:
+                table_rows = table.strip().splitlines()
+                table_data = []
+                for row in table_rows:
+                    cells = re.split(r'\||\s{2,}', row.strip())  # Split cells based on pipes or whitespace
+                    table_data.append(cells)
+                tables.append(table_data)
+
+        return JsonResponse({'text_data': text_data, 'tables': tables})
+
+    except Exception as e:
+        return JsonResponse({'error': f'Error processing PDF: {str(e)}'}, status=500)
+
+@csrf_exempt
+def extract_pdf_view(request):
+    """
+    Wrapper view for handling CSRF exemption for the extract_pdf_data function.
+    """
+    return extract_pdf_data(request)
