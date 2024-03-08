@@ -939,18 +939,20 @@ def extract_pdf_data(request):
             page = pdf_reader.pages[page_num]
             page_text = page.extract_text()
 
-            # Adjusted regular expression for flexibility
+            # Enhanced regular expression for flexibility
             tax_invoice_pattern = r"""
-                (?:Tax\s+Invoice\s+No\.|
-                   Tax\s+Invoice\s*[:]|
-                   Invoice\s+No\.|
-                   Invoice\s*[:])\s*
-                (\w+\s*\d+)
+                (?:
+                    Tax\s+Invoice\s+No\.|  # Tax Invoice No. (with optional space)
+                    Tax\s+Invoice\s*[:],    # Tax Invoice: (with optional space and comma)
+                    Invoice\s+No\.|          # Invoice No.
+                    Invoice\s*[:]            # Invoice: (with optional space and colon)
+                )\s*
+                (\w+\s*\d+)              # Capture alphanumeric + digits (including spaces)
             """
             match = re.search(tax_invoice_pattern, page_text, re.IGNORECASE | re.VERBOSE)  # Verbose flag for readability
 
             if match:
-                tax_invoice_no = match.group(1).strip()
+                tax_invoice_no = match.group(1).strip() + match.group(2).strip()  # Combine potential prefix and number
                 break  # Stop processing pages after finding the first occurrence
 
         return JsonResponse({'tax_invoice_no': tax_invoice_no})
