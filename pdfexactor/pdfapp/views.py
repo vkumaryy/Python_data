@@ -903,24 +903,6 @@ from PyPDF2 import PdfReader
 def extract_pdf_data(request):
     """
     API view to extract tax invoice number from a PDF uploaded in a POST request.
-
-    **Expected request format (POST):**
-
-    ```json
-    {
-        "pdf_file": (file object, required)
-    }
-    ```
-
-    **Returns:**
-
-    A JSON response containing the extracted tax invoice number, or an empty string if not found:
-
-    ```json
-    {
-        "tax_invoice_no": "123456" (or an empty string if not found)
-    }
-    ```
     """
 
     if request.method != 'POST':
@@ -935,29 +917,26 @@ def extract_pdf_data(request):
         pdf_reader = PdfReader(pdf_file)
         tax_invoice_no = ""
 
-        for page_num in range(len(pdf_reader.pages)):
-            page = pdf_reader.pages[page_num]
-            page_text = page.extract_text()
-
-            # Enhanced regular expression for flexibility
+        for page in pdf_reader.pages:
+            page_text = page.extract_text() if page else ""
+            
             tax_invoice_pattern = r"""
-                (?:
-                    Tax\s+Invoice\s+No\.|  # Tax Invoice No. (with optional space)
-                    Tax\s+Invoice\s*[:],    # Tax Invoice: (with optional space and comma)
-                    Invoice\s+No\.|          # Invoice No.
-                    Invoice\s*[:]            # Invoice: (with optional space and colon)
-                )\s*
-                (\w+\s*\d+)              # Capture alphanumeric + digits (including spaces)
+                (?:Tax\s+Invoice\s+No\.|
+                Tax\s+Invoice[:]|       # Corrected to match either ':' or noting after 'Invoice'
+                Invoice\s+No\.|
+                Invoice[:])\s*          # Matching optional space after ':' or no character
+                ([\w\s]+)               # Capture alphanumeric + spaces (may need fine-tuning)
             """
-            match = re.search(tax_invoice_pattern, page_text, re.IGNORECASE | re.VERBOSE)  # Verbose flag for readability
-
+            match = re.search(tax_invoice_pattern, page_text, re.IGNORECASE | re.VERBOSE)
+            
             if match:
-                tax_invoice_no = match.group(1).strip() + match.group(2).strip()  # Combine potential prefix and number
-                break  # Stop processing pages after finding the first occurrence
+                tax_invoice_no = match.group(1).strip()  # Corrected to use only one group
+                break  # Stop after finding the first occurrence
 
         return JsonResponse({'tax_invoice_no': tax_invoice_no})
 
     except Exception as e:
+        # Consider using logging here for the error
         return JsonResponse({'error': f'Error processing PDF: {str(e)}'}, status=500)
 
 @csrf_exempt
@@ -966,5 +945,6 @@ def extract_pdf_view(request):
     Wrapper view for handling CSRF exemption for the extract_pdf_data function.
     """
     return extract_pdf_data(request)
+
 
 
