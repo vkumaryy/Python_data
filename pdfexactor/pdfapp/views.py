@@ -1013,6 +1013,14 @@ def extract_pdf_data(request):
                 logger.info(f'Extracted tax invoice number: {tax_invoice_no}')
 
         # Save data to model (if tax invoice number found)
+        try:
+            pdf_detail = PdfDetail(filename=request.FILES['pdf_file'].name, tax_invoice_no=tax_invoice_no)
+            pdf_detail.save()
+            return JsonResponse({'tax_invoice_no': tax_invoice_no})  # Success, return tax invoice number
+        except IntegrityError:
+            logger.warning(f'Duplicate tax invoice number: {tax_invoice_no}')
+            return JsonResponse({'tax_invoice_no': 'Duplicate tax invoice number found.'}, status=409)  # Conflict (duplicate)
+        
         if tax_invoice_no:
             pdf_detail = PdfDetail()
             pdf_detail.save_from_json({
