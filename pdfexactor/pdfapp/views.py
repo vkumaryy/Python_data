@@ -1045,3 +1045,22 @@ def extract_pdf_view(request):
 
 
 
+
+import logging.config
+
+# Configure logging using the configuration file
+logging.config.fileConfig('logging.conf')
+
+# Get the logger for this module
+logger = logging.getLogger(__name__)
+
+def your_view(request):
+    # ... your view logic ...
+    logger.info("Processing request for PDF data extraction.")
+    
+    try:
+        # ... your code for processing PDF ...
+    except Exception as e:
+        logger.error(f"Error processing PDF: {str(e)}")
+    
+    # ... return response ...
