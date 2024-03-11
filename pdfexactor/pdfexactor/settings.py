@@ -127,64 +127,64 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# Swagger documentation configuration
-SWAGGER_SETTINGS = {
-    'SECURITY_DEFINITIONS': {
-        'basic': {
-            'type': 'http',
-            'scheme': 'basic'
-        }
-    }
-}
+# # Swagger documentation configuration
+# SWAGGER_SETTINGS = {
+#     'SECURITY_DEFINITIONS': {
+#         'basic': {
+#             'type': 'http',
+#             'scheme': 'basic'
+#         }
+#     }
+# }
 
 # Optional: Customize API title and URL (default is '/swagger/')
 # SWAGGER_TITLE = 'Your API Title'
 # SWAGGER_URL = '/api-docs/'
 
-import logging
+# import logging
 
-# ... other Django settings
+# # ... other Django settings
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
 
-    'formatters': {
-        'verbose': {
-            'format': '{asctime} ({levelname}) {module}.{funcName}: {message}',
-            'style': '{',  # Braces for consistent formatting
-        },
-    },
+#     'formatters': {
+#         'verbose': {
+#             'format': '{asctime} ({levelname}) {module}.{funcName}: {message}',
+#             'style': '{',  # Braces for consistent formatting
+#         },
+#     },
 
-    'handlers': {
-        'file': {
-            'level': 'DEBUG',  # Adjust logging level as needed
-            'class': 'logging.FileHandler',
-            'filename': 'your_app.log',  # Customize the log file name
-            'formatter': 'verbose',  # Use the 'verbose' formatter
-        },
-        # Add console handler (optional)
-        'console': {
-            'level': 'INFO',  # Adjust console logging level (optional)
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',  # Use the 'verbose' formatter
-        },
-    },
+#     'handlers': {
+#         'file': {
+#             'level': 'DEBUG',  # Adjust logging level as needed
+#             'class': 'logging.FileHandler',
+#             'filename': 'your_app.log',  # Customize the log file name
+#             'formatter': 'verbose',  # Use the 'verbose' formatter
+#         },
+#         # Add console handler (optional)
+#         'console': {
+#             'level': 'INFO',  # Adjust console logging level (optional)
+#             'class': 'logging.StreamHandler',
+#             'formatter': 'verbose',  # Use the 'verbose' formatter
+#         },
+#     },
 
-    'loggers': {
-        'django': {
-            'handlers': ['file'],  # Add 'console' for console output (optional)
-            'level': 'DEBUG',  # Adjust logging level for Django messages
-            'propagate': True,  # Allow logs to propagate to parent loggers
-        },
-        # Add custom loggers for your app (optional)
-        'your_app': {  # Replace 'your_app' with your app's name
-            'handlers': ['file'],  # Handlers for your app's logger
-            'level': 'INFO',  # Adjust logging level for your app
-            'propagate': True,
-        },
-    },
-}
+#     'loggers': {
+#         'django': {
+#             'handlers': ['file'],  # Add 'console' for console output (optional)
+#             'level': 'DEBUG',  # Adjust logging level for Django messages
+#             'propagate': True,  # Allow logs to propagate to parent loggers
+#         },
+#         # Add custom loggers for your app (optional)
+#         'your_app': {  # Replace 'your_app' with your app's name
+#             'handlers': ['file'],  # Handlers for your app's logger
+#             'level': 'INFO',  # Adjust logging level for your app
+#             'propagate': True,
+#         },
+#     },
+# }
 
-# Use this setting to turn off debug mode
-# DEBUG = False  # Uncomment for production deployment
+# # Use this setting to turn off debug mode
+# # DEBUG = False  # Uncomment for production deployment

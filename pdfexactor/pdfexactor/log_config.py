@@ -28,10 +28,3 @@ def setup_logger(name, log_file, level=logging.INFO):
 
 
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-# Import the setup_logger function
-from .log_config import setup_logger
-
-# Setup your logger
-logger = setup_logger('pdf_extraction', 'logs/pdf_extraction.log')
