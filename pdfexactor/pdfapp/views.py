@@ -15,7 +15,7 @@ import pdfplumber
 
 
 # Configure logging using the configuration file
-logging.config.fileConfig('logging.conf')
+# logging.config.fileConfig('logging.conf')
 
 # Get the logger for this module
 from pdfexactor.log_config import setup_logger

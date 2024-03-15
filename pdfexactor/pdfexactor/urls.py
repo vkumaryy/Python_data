@@ -20,8 +20,8 @@ from pdfapp import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('extract_pdf/', views.extract_pdf_text, name='extract_pdf'),
-    path('ext/', views.extract_pdf_data, name='extract_pdf'),
+    # path('extract_pdf/', views.extract_pdf_text, name='extract_pdf'),
+    path('ext/', views.extract_pdf_view, name='extract_pdf'),
 
     
 ]
