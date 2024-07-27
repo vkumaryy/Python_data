@@ -22,3 +22,8 @@ y = 16.9
 total = x + y
 print(total)
 print(type(total))
+
+j = "hekie"
+k= "adding"
+print(j+k)
+
